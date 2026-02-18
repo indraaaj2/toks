@@ -1,0 +1,29 @@
+name: Bun CSV Processor
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  process-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to push the new CSV back to the repo
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Run Processing Script
+        run: bun run process.ts
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add processed_data.csv
+          git commit -m "Auto-update processed data via Bun" || echo "No changes to commit"
+          git push
