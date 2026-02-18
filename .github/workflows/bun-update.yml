@@ -21,6 +21,8 @@ jobs:
 
       - name: Run Processing Script
         run: bun run process.ts
+        env:          
+          KOTAK_TOKEN: ${{ secrets.kstoken }} 
 
       - name: Commit and Push Changes
         run: |
