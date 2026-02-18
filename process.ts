@@ -1,9 +1,10 @@
-// process.js
+import { mkdirSync, rmSync, existsSync } from "node:fs";
+
 const TOKEN = Bun.env.KOTAK_TOKEN;
 const BASE_URL = "https://cis.kotaksecurities.com";
 
 if (!TOKEN) {
-  console.error("❌ KOTAK_TOKEN is missing! check your GitHub Secrets mapping.");
+  console.error("❌ KOTAK_TOKEN is missing! Check your GitHub Secrets.");
   process.exit(1);
 }
 
@@ -21,7 +22,7 @@ async function run() {
 
     let allResults = [];
 
-    // 2. Process each CSV URL
+    
     for (const url of filePaths) {
       console.log(`Fetching: ${url}`);
       const csvText = await (await fetch(url)).text();
@@ -29,10 +30,28 @@ async function run() {
       allResults.push(...mapped);
     }
 
-    // 3. Save as JSON (Easier for your frontend to fetch and put into IndexedDB)
-    await Bun.write("processed_data.json", JSON.stringify(allResults));
     
-    console.log(`✅ Successfully processed ${allResults.length} rows.`);
+    if (existsSync("KS")) {
+      rmSync("KS", { recursive: true, force: true });
+    }
+    mkdirSync("KS", { recursive: true });
+
+    
+    const grouped = {};
+    allResults.forEach(item => {
+      const sym = item.symbol.trim();
+      if (!sym) return;
+      if (!grouped[sym]) grouped[sym] = [];
+      grouped[sym].push(item);
+    });
+
+    
+    console.log(`Saving ${Object.keys(grouped).length} symbol files...`);
+    for (const [symbol, data] of Object.entries(grouped)) {
+      await Bun.write(`KS/${symbol}.json`, JSON.stringify(data));
+    }
+    
+    console.log(`✅ Successfully processed into /KS folder.`);
   } catch (err) {
     console.error("Fatal Error:", err);
     process.exit(1);
@@ -46,13 +65,12 @@ function parseAndMap(csvText) {
   const headers = lines[0].split(",").map(e => e.trim());
   const t = {};
 
-  // Your dynamic column detection logic
   headers.forEach((e, i) => {
     if (["SYMBOL", "pSymbolName"].includes(e)) t.symbol = i;
     if (["STRIKE_PR", "dStrikePrice", "dStrikePrice;"].includes(e)) t.strike = i;
     if (["OPTION_TYP", "pOptionType"].includes(e)) t.optionType = i;
     if (["EXPIRY_DT", "lExpiryDate"].includes(e)) t.expiry = i;
-    if (["pTrdSymbol", "pTrdSymbol"].includes(e)) t.ts = i;
+    if (["pTrdSymbol"].includes(e)) t.ts = i;
   });
 
   return lines.slice(1).map(line => {
@@ -62,7 +80,7 @@ function parseAndMap(csvText) {
       strikePrice: parseFloat(col[t.strike]) || 0,
       optionType: col[t.optionType] || "",
       expiry: parseExpiry(col[t.expiry]),
-      ts:col[t.ts]
+      ts: col[t.ts] || ""
     };
   });
 }
