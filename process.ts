@@ -52,6 +52,7 @@ function parseAndMap(csvText) {
     if (["STRIKE_PR", "dStrikePrice", "dStrikePrice;"].includes(e)) t.strike = i;
     if (["OPTION_TYP", "pOptionType"].includes(e)) t.optionType = i;
     if (["EXPIRY_DT", "lExpiryDate"].includes(e)) t.expiry = i;
+    if (["pTrdSymbol", "pTrdSymbol"].includes(e)) t.ts = i;
   });
 
   return lines.slice(1).map(line => {
@@ -61,7 +62,7 @@ function parseAndMap(csvText) {
       strikePrice: parseFloat(col[t.strike]) || 0,
       optionType: col[t.optionType] || "",
       expiry: parseExpiry(col[t.expiry]),
-      // We exclude 'raw' here to keep the file size small for GitHub Pages
+      ts:col[t.ts]
     };
   });
 }
