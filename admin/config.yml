@@ -1,0 +1,17 @@
+# This line is CRITICAL for local-only use
+local_backend: true
+
+backend:
+  name: git-gateway # This is a placeholder; local_backend overrides it
+
+media_folder: "images"
+public_folder: "/images"
+
+collections:
+  - name: "posts"
+    label: "Posts"
+    folder: "content/posts"
+    create: true
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Body", name: "body", widget: "markdown" }
